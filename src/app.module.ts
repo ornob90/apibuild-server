@@ -3,12 +3,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProjectsModule } from './projects/projects.module';
+import { TokenModule } from './token/token.module';
 
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Module({
-  imports: [MongooseModule.forRoot(process.env.MONGO_URI!), ProjectsModule],
+  imports: [MongooseModule.forRoot(process.env.MONGO_URI!), ProjectsModule, TokenModule],
   controllers: [AppController],
   providers: [AppService],
 })
