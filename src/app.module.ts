@@ -6,13 +6,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ProjectsModule } from './projects/projects.module';
 import { TokenModule } from './token/token.module';
 import { TablesModule } from './tables/tables.module';
+import { ApisModule } from './apis/apis.module';
 
 
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 @Module({
-  imports: [MongooseModule.forRoot(process.env.MONGO_URI!), ProjectsModule, TokenModule, TablesModule],
+  imports: [MongooseModule.forRoot(process.env.MONGO_URI!), ProjectsModule, TokenModule, TablesModule, ApisModule],
   controllers: [AppController],
   providers: [AppService],
 })

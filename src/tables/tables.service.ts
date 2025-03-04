@@ -40,6 +40,7 @@ export class TablesService {
       required: col.required,
       unique: col.unique,
     }));
+    
     await this.columnModel.insertMany(columnDocs);
 
     // Construct MongoDB collection name
@@ -150,7 +151,7 @@ export class TablesService {
 
     // Drop the MongoDB collection
     const collectionName = `${userId}_${String(table.projectId)}_${String(table.tableName)}`;
-    
+
     if (!this.connection.db) {
       throw new Error('Database connection not established');
     }

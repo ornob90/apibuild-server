@@ -1,4 +1,41 @@
-import { Controller } from '@nestjs/common';
+/* eslint-disable prettier/prettier */
+import { Controller, Post, Get, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from 'src/guards/auth.guard';
+import { TokenService } from './token.service';
+import { CreateTokenDto } from './dto/create-token.dto';
+import { Request } from 'express';
 
-@Controller('token')
-export class TokenController {}
+interface AuthenticatedRequest extends Request {
+  user: { id: string };
+}
+
+@Controller('tokens')
+@UseGuards(AuthGuard)
+export class TokensController {
+  constructor(private readonly tokenService: TokenService) {}
+
+  @Post()
+  async createToken(@Req() req: AuthenticatedRequest, @Body() createTokenDto: CreateTokenDto) {
+    const userId = req.user.id;
+    return this.tokenService.createToken(userId, createTokenDto);
+  }
+
+  @Get()
+  async getUserTokens(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    return this.tokenService.getUserTokens(userId);
+  }
+
+  @Get(':tokenId')
+  async getTokenById(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+    const userId = req.user.id;
+    return this.tokenService.getTokenById(userId, tokenId);
+  }
+
+  @Delete(':tokenId')
+  async revokeToken(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+    const userId = req.user.id;
+    await this.tokenService.revokeToken(userId, tokenId);
+    return { message: 'Token revoked successfully' };
+  }
+}
