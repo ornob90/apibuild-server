@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   ArgumentsHost,
   ExceptionFilter,
@@ -22,7 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.message
         : 'Internal Server Error';
 
-    let errorResponse = {
+    let errorResponse: any = {
       acknowledgement: false,
       statusCode: status,
       timestamp: new Date().toISOString(),
@@ -30,10 +32,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (typeof message === 'string') {
       errorResponse.message = message;
-    } else {
+    } else if(typeof message === "object") {
       errorResponse = {
         ...errorResponse,
-        ...message,
+        ...(message as object || {}),
       };
     }
   }
