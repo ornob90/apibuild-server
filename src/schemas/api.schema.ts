@@ -1,6 +1,8 @@
 /* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { MongoDBID } from 'src/types/schema.types';
+
 
 @Schema()
 export class Api extends Document {
@@ -16,22 +18,26 @@ export class Api extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Table' })
   tableId: Types.ObjectId;
 
-  @Prop({ required: true, enum: ['insert', 'update', 'delete'] })
-  action: string; // Removed findOne, findAll, aggregate
+  @Prop({ required: true, enum: ['find', 'insert', 'update', 'delete'] })
+  action: string;
 
-  @Prop() // Kept but unused in logic
+  @Prop()
   queryField: string;
 
   @Prop({
-    type: [
-      {
-        name: String,
-        action: { type: String, enum: ['findOne', 'findAll', 'aggregate'] },
-      },
-    ],
+    type: [{ name: String, action: { type: String, enum: ['findOne', 'findAll', 'aggregate'] } }],
     default: [],
   })
   params: { name: string; action: 'findOne' | 'findAll' | 'aggregate' }[];
+
+  @Prop({ enum: ['asc', 'desc'], default: 'asc' })
+  sortOrder: string;
+
+  @Prop({ type: Number, default: 10 })
+  limit: number;
+
+  @Prop({ enum: ['count', 'sum', 'avg'], default: 'count' })
+  aggregateType: string;
 
   @Prop({ default: false })
   returnIdOnly: boolean;
@@ -43,7 +49,7 @@ export class Api extends Document {
   returnCount: boolean;
 }
 
+export type ApiDocument = Api & Document & MongoDBID;
 export const ApiSchema = SchemaFactory.createForClass(Api);
 
-// Index for faster lookup by userId and path
 ApiSchema.index({ userId: 1, path: 1 });
