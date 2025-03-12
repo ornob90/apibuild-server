@@ -1,6 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import {
   ArgumentsHost,
   ExceptionFilter,
@@ -12,7 +14,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<any>(); // Type as any for simplicity; refine as needed
-    const request = ctx.getRequest<Request>();
+    // const request = ctx.getRequest<Request>();
 
     // Determine the status code
     const status =
@@ -31,7 +33,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       acknowledgement: false,
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: request.url, // Include the request path for debugging
+      // path: request.url, // Include the request path for debugging
     };
 
     // Handle message based on its type
@@ -40,7 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else if (typeof message === 'object') {
       errorResponse = {
         ...errorResponse,
-        ...(message), // Spread object properties (e.g., from BadRequestException)
+        ...message, // Spread object properties (e.g., from BadRequestException)
       };
     }
 

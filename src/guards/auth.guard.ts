@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -19,7 +20,8 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    console.log("authHeader", authHeader)
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException(
         'Authorization header missing or invalid',
@@ -29,7 +31,7 @@ export class AuthGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
 
     // check if it's an API token (starts with 'api_')
-    if (token.startsWith('api_')) {
+    if (token && token.startsWith('api_')) {
       const userId = await this.tokenService.validateToken(token);
 
       if (!userId) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 /* eslint-disable prettier/prettier */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -88,7 +89,7 @@ export class TokenService {
 
   async validateToken(token: string): Promise<string | null> {
     const tokens = await this.tokenModel.find({ active: true }).exec();
-    
+
     for (const tokenDoc of tokens) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const isCorrect = await bcrypt.compare(token, tokenDoc.tokenHash);

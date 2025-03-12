@@ -1,14 +1,14 @@
 /* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { MongoDBID } from 'src/types/schema.types';
 
 @Schema({ timestamps: true })
 export class Token extends Document {
   // _id automatically provided by Mongoose as ObjectId
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  userId: Types.ObjectId;
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  userId: mongoose.Schema.Types.ObjectId
 
   @Prop({ required: true })
   tokenHash: string;

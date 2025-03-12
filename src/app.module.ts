@@ -23,6 +23,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { nodemailerConfig } from './config/nodemailer.config';
 import { VerifyMiddleware } from './middlewares/verify.middleware';
+import { ProjectsController } from './projects/projects.controller';
 dotenv.config();
 
 @Module({
@@ -46,6 +47,9 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(VerifyMiddleware)
-      .forRoutes({ path: '/auth/session', method: RequestMethod.GET });
+      .forRoutes(
+        { path: '/auth/session', method: RequestMethod.GET },
+        ProjectsController,
+      );
   }
 }

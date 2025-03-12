@@ -1,13 +1,13 @@
 /* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import { MongoDBID } from 'src/types/schema.types';
 
 
 @Schema()
 export class Api extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  userId: Types.ObjectId;
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  userId: mongoose.Schema.Types.ObjectId
 
   @Prop({ required: true, enum: ['GET', 'POST', 'PUT', 'DELETE'] })
   method: string;
@@ -15,8 +15,8 @@ export class Api extends Document {
   @Prop({ required: true })
   path: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Table' })
-  tableId: Types.ObjectId;
+  @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'Table' })
+  tableId: mongoose.Schema.Types.ObjectId
 
   @Prop({ required: true, enum: ['find', 'insert', 'update', 'delete'] })
   action: string;
