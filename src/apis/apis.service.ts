@@ -22,16 +22,14 @@ export class ApisService {
     userId: string,
     createApiDto: CreateApiDto,
   ): Promise<{ apiId: string }> {
-    const { method, path, tableId, action, queryField, paramName } =
+    const { method, path, tableId, action, params, sortOrder, limit, aggregateType } =
       createApiDto;
 
-    // Validate table exists
     const table = await this.tableModel.findById(tableId).exec();
     if (!table) {
       throw new NotFoundException('Table not found');
     }
 
-    // Check for duplicate method and path for this user
     const existingApi = await this.apiModel
       .findOne({ userId, method, path })
       .exec();
@@ -41,29 +39,37 @@ export class ApisService {
       );
     }
 
-    // Validate queryField and paramName for actions requiring them
-    if (['findOne', 'update', 'delete'].includes(action)) {
-      if (!queryField || !paramName) {
+    if (['find', 'update', 'delete'].includes(action)) {
+      if (!params || params.length === 0) {
         throw new BadRequestException(
-          `'queryField' and 'paramName' are required for action '${action}'`,
+          `'params' array is required and must not be empty for action '${action}'`,
         );
       }
-      if (!path.includes(`:${paramName}`)) {
-        throw new BadRequestException(
-          `Path must include the parameter ':${paramName}' for action '${action}'`,
-        );
+      params.forEach(param => {
+        if (['findOne', 'findAll', 'aggregate'].includes(param.action) && !path.includes(`:${param.name}`)) {
+          throw new BadRequestException(
+            `Path must include the parameter ':${param.name}' for param action '${param.action}'`,
+          );
+        }
+      });
+    }
+
+    if (action === 'find' && params.some(p => p.action === 'aggregate')) {
+      if (aggregateType && !['count', 'sum', 'avg'].includes(aggregateType)) {
+        throw new BadRequestException(`Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`);
       }
     }
 
-    // Create the API document
     const api = new this.apiModel({
       userId,
       method,
       path,
       tableId,
       action,
-      queryField,
-      paramName,
+      params,
+      sortOrder: sortOrder || 'asc',
+      limit: limit || 10,
+      aggregateType: aggregateType || 'count',
     });
     await api.save();
 
@@ -77,6 +83,10 @@ export class ApisService {
       path: string;
       tableId: string;
       action: string;
+      params: { name: string; action: string }[];
+      sortOrder: string;
+      limit: number;
+      aggregateType: string;
     }[]
   > {
     const apis = await this.apiModel.find({ userId }).exec();
@@ -86,6 +96,10 @@ export class ApisService {
       path: api.path,
       tableId: api.tableId.toString(),
       action: api.action,
+      params: api.params,
+      sortOrder: api.sortOrder,
+      limit: api.limit,
+      aggregateType: api.aggregateType,
     }));
   }
 
@@ -93,13 +107,15 @@ export class ApisService {
     userId: string,
     apiId: string,
   ): Promise<{
-    apiId: string;
-    method: string;
-    path: string;
-    tableId: string;
-    action: string;
-    queryField?: string;
-    paramName?: string;
+      apiId: string;
+      method: string;
+      path: string;
+      tableId: string;
+      action: string;
+      params: { name: string; action: string }[];
+      sortOrder: string;
+      limit: number;
+      aggregateType: string;
   }> {
     const api = await this.apiModel.findOne({ _id: apiId, userId }).exec();
     if (!api) {
@@ -111,8 +127,10 @@ export class ApisService {
       path: api.path,
       tableId: api.tableId.toString(),
       action: api.action,
-      queryField: api.queryField,
-      paramName: api.paramName,
+      params: api.params,
+      sortOrder: api.sortOrder,
+      limit: api.limit,
+      aggregateType: api.aggregateType,
     };
   }
 
@@ -121,48 +139,59 @@ export class ApisService {
     apiId: string,
     updateApiDto: UpdateApiDto,
   ): Promise<{ apiId: string }> {
-    const { method, path, action, queryField, paramName } = updateApiDto;
+    const { method, path, action, params, sortOrder, limit, aggregateType } = updateApiDto;
 
     const api = await this.apiModel.findOne({ _id: apiId, userId }).exec();
     if (!api) {
       throw new NotFoundException('API not found');
     }
 
-    // Check for duplicate method and path (excluding this API)
-    const duplicate = await this.apiModel.findOne({
-      userId,
-      method,
-      path,
-      _id: { $ne: apiId },
-    });
-
-    if (duplicate) {
-      throw new BadRequestException(
-        `API with method '${method}' and path '${path}' already exists for this user`,
-      );
-    }
-
-    // Validate queryField and paramName for actions requiring them
-    if (['findOne', 'update', 'delete'].includes(action)) {
-      if (!queryField || !paramName) {
+    if (method && path) {
+      const duplicate = await this.apiModel.findOne({
+        userId,
+        method,
+        path,
+        _id: { $ne: apiId },
+      });
+      if (duplicate) {
         throw new BadRequestException(
-          `'queryField' and 'paramName' are required for action '${action}'`,
-        );
-      }
-      if (!path.includes(`:${paramName}`)) {
-        throw new BadRequestException(
-          `Path must include the parameter ':${paramName}' for action '${action}'`,
+          `API with method '${method}' and path '${path}' already exists for this user`,
         );
       }
     }
 
-    api.method = method;
-    api.path = path;
-    api.action = action;
-    api.queryField = String(queryField);
-    api.paramName = String(paramName);
+    if (action && ['find', 'update', 'delete'].includes(action)) {
+      if (!params || params.length === 0) {
+        throw new BadRequestException(
+          `'params' array is required and must not be empty for action '${action}'`,
+        );
+      }
+      params.forEach(param => {
+        if (['findOne', 'findAll', 'aggregate'].includes(param.action) && !(path || api.path).includes(`:${param.name}`)) {
+          throw new BadRequestException(
+            `Path must include the parameter ':${param.name}' for param action '${param.action}'`,
+          );
+        }
+      });
+    }
+
+    if ((action === 'find' || api.action === 'find') && (params || api.params).some(p => p.action === 'aggregate')) {
+      if (aggregateType && !['count', 'sum', 'avg'].includes(aggregateType)) {
+        throw new BadRequestException(`Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`);
+      }
+    }
+
+    if (method) api.method = method;
+    if (path) api.path = path;
+    if (action) api.action = action;
+    if (params) api.params = params;
+    if (sortOrder) api.sortOrder = sortOrder;
+    if (limit !== undefined) api.limit = limit;
+    if (aggregateType) api.aggregateType = aggregateType;
+
     await api.save();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return { apiId: api._id.toString() };
   }
 

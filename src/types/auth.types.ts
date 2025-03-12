@@ -1,7 +1,18 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable no-case-declarations */
+import { User } from 'src/schemas/user.schema';
+
+export interface Payload {
+  _id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface Session {
+  id: string;
+  email: string;
+  userName: string;
+  user?: User;
+}
 
 export interface AuthenticateRequest extends Request {
   path: any;

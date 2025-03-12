@@ -1,8 +1,18 @@
 /* eslint-disable prettier/prettier */
-import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { IsEnum, IsString, IsNotEmpty, IsArray, ValidateNested, IsOptional, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ParamDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsEnum(['findOne', 'findAll', 'aggregate'])
+  action: 'findOne' | 'findAll' | 'aggregate';
+}
 
 export class CreateApiDto {
-  @IsString()
+  @IsEnum(['GET', 'POST', 'PUT', 'DELETE'])
   @IsNotEmpty()
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
 
@@ -14,13 +24,25 @@ export class CreateApiDto {
   @IsNotEmpty()
   tableId: string;
 
-  @IsEnum(['findOne', 'findAll', 'aggregate', 'insert', 'update', 'delete'])
+  @IsEnum(['find', 'insert', 'update', 'delete'])
   @IsNotEmpty()
-  action: 'findOne' | 'findAll' | 'aggregate' | 'insert' | 'update' | 'delete';
+  action: 'find' | 'insert' | 'update' | 'delete';
 
-  @IsString()
-  queryField?: string; // Optional, for findOne, update, delete
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParamDto)
+  params: ParamDto[];
 
-  @IsString()
-  paramName?: string; // Optional, for findOne, update, delete
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
+  @IsEnum(['count', 'sum', 'avg'])
+  aggregateType?: 'count' | 'sum' | 'avg';
 }

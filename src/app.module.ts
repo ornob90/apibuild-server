@@ -1,5 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -15,6 +20,9 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConfig } from './config/jwt.config';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { nodemailerConfig } from './config/nodemailer.config';
+import { VerifyMiddleware } from './middlewares/verify.middleware';
 dotenv.config();
 
 @Module({
@@ -22,6 +30,7 @@ dotenv.config();
     MongooseModule.forRoot(process.env.MONGO_URI!),
     CacheModule.register(),
     JwtModule.register(jwtConfig),
+    MailerModule.forRoot(nodemailerConfig),
     ProjectsModule,
     TokenModule,
     TablesModule,
@@ -33,4 +42,10 @@ dotenv.config();
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(VerifyMiddleware)
+      .forRoutes({ path: '/auth/session', method: RequestMethod.GET });
+  }
+}

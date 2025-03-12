@@ -17,9 +17,9 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
       { name: Analytics.name, schema: AnalyticsSchema },
     ]),
     TokenModule,
-    AnalyticsService,
+    // AnalyticsModule
   ],
   controllers: [ApiBuildController],
-  providers: [ApiBuildService],
+  providers: [ApiBuildService, AnalyticsService],
 })
 export class ApiBuildModule {}

@@ -8,9 +8,11 @@ import { Analytics, AnalyticsSchema } from 'src/schemas/analytics.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Analytics.name, schema: AnalyticsSchema }]),
+    MongooseModule.forFeature([
+      { name: Analytics.name, schema: AnalyticsSchema },
+    ]),
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService]
+  providers: [AnalyticsService],
 })
 export class AnalyticsModule {}
