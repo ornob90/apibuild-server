@@ -1,17 +1,16 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Get, Put, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Req } from '@nestjs/common';
 import { TablesService } from './tables.service';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
 import { Request } from 'express';
-import { AuthGuard } from 'src/guards/auth.guard';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string };
 }
 
 @Controller('tables')
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
 

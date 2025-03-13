@@ -36,14 +36,18 @@ export class ProjectsController {
     @Req() req: AuthenticateRequest,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
+    @Query('all') all?: 'true' | 'false' 
   ) {
     const userId = req.user.id;
     return this.projectsService.getUserProjects(
       userId,
       parseInt(page),
       parseInt(limit),
+      all
     );
   }
+
+  
 
   @Get(':projectId')
   async getProjectById(

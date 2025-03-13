@@ -1,5 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-base-to-string */
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Connection } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -7,6 +13,7 @@ import { Table, TableDocument } from 'src/schemas/table.schema';
 import { Column, ColumnDocument } from 'src/schemas/column.schema';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
+import { jsonSchema } from 'src/types/mongodb.types';
 
 @Injectable()
 export class TablesService {
@@ -16,74 +23,109 @@ export class TablesService {
     @InjectConnection() private connection: Connection,
   ) {}
 
-  async createTable(userId: string, createTableDto: CreateTableDto): Promise<{ tableId: string }> {
-    const { projectId, tableName, columns } = createTableDto;
+  async createTable(
+    userId: string,
+    createTableDto: CreateTableDto,
+  ): Promise<{ tableId: string }> {
+    try {
+      const { projectId, tableName, columns } = createTableDto;
 
-    // Construct the full table name with userId
-    const fullTableName = `${userId}_${projectId}_${tableName}`;
+      // Ensure db is defined
+      if (!this.connection.db) {
+        throw new Error('Database connection not established');
+      }
 
-    // Check if table name already exists in the project
-    const existingTable = await this.tableModel.findOne({ projectId, tableName }).exec();
-    if (existingTable) {
-      throw new BadRequestException(`Table '${tableName}' already exists in this project for this user`);
+      // Construct the full table name with userId
+      const fullTableName = `${userId}_${projectId}_${tableName}`;
+
+      // Check if table name already exists in the project
+      const existingTable = await this.tableModel
+        .findOne({ projectId, tableName })
+        .exec();
+      if (existingTable) {
+        throw new BadRequestException(
+          `Table '${tableName}' already exists in this project for this user`,
+        );
+      }
+
+      // Create the table document (store original tableName, not full name)
+      const table = new this.tableModel({ userId, projectId, tableName });
+      await table.save();
+
+      // Create column documents
+      const columnDocs = columns.map((col) => ({
+        tableId: table._id,
+        name: col.name,
+        type: col.type,
+        required: col.required,
+        unique: col.unique,
+      }));
+
+      await this.columnModel.insertMany(columnDocs);
+
+      // Construct MongoDB collection name
+      const collectionName = fullTableName;
+
+      console.log(collectionName);
+
+      // Generate JSON Schema for validation
+      const requiredFields = columns
+        .filter((c) => c.required)
+        .map((c) => c.name);
+
+      const schema: jsonSchema = {
+        bsonType: 'object',
+        properties: columns.reduce((acc, col) => {
+          acc[col.name] = { bsonType: col.type.toLowerCase() };
+          return acc;
+        }, {}),
+      };
+
+      if (requiredFields.length > 0) {
+        schema.required = requiredFields;
+      }
+
+      // Create the collection with schema validation
+      await this.connection.db.createCollection(collectionName, {
+        validator: { $jsonSchema: schema },
+      });
+
+      // Add unique indexes
+      const uniqueColumns = columns.filter((c) => c.unique);
+
+      for (const col of uniqueColumns) {
+        await this.connection.db
+          .collection(collectionName)
+          .createIndex({ [col.name]: 1 }, { unique: true });
+      }
+
+      return { tableId: table._id.toString() };
+    } catch (error) {
+      console.log(error.message);
+      throw new InternalServerErrorException(error.message);
     }
-
-    // Create the table document (store original tableName, not full name)
-    const table = new this.tableModel({ projectId, tableName });
-    await table.save();
-
-    // Create column documents
-    const columnDocs = columns.map(col => ({
-      tableId: table._id,
-      name: col.name,
-      type: col.type,
-      required: col.required,
-      unique: col.unique,
-    }));
-    
-    await this.columnModel.insertMany(columnDocs);
-
-    // Construct MongoDB collection name
-    const collectionName = fullTableName;
-
-    // Ensure db is defined
-    if (!this.connection.db) {
-      throw new Error('Database connection not established');
-    }
-
-    // Generate JSON Schema for validation
-    const schema = {
-      bsonType: 'object',
-      required: columns.filter(c => c.required).map(c => c.name),
-      properties: columns.reduce((acc, col) => {
-        acc[col.name] = { bsonType: col.type.toLowerCase() };
-        return acc;
-      }, {}),
-    };
-
-    // Create the collection with schema validation
-    await this.connection.db.createCollection(collectionName, {
-      validator: { $jsonSchema: schema },
-    });
-
-    // Add unique indexes
-    const uniqueColumns = columns.filter(c => c.unique);
-    for (const col of uniqueColumns) {
-      await this.connection.db.collection(collectionName).createIndex({ [col.name]: 1 }, { unique: true });
-    }
-
-    return { tableId: table._id.toString() };
   }
 
-  async getTablesByProject(userId: string, projectId: string): Promise<{ tableId: string; tableName: string }[]> {
+  async getTablesByProject(
+    userId: string,
+    projectId: string,
+  ): Promise<{ tableId: string; tableName: string }[]> {
     const tables = await this.tableModel.find({ projectId }).exec();
-    return tables.map(table => ({
+    return tables.map((table) => ({
       tableId: table._id.toString(),
       tableName: table.tableName,
     }));
   }
 
-  async getTableById(userId: string, tableId: string): Promise<{ tableId: string; projectId: string; tableName: string; columns: any[] }> {
+  async getTableById(
+    userId: string,
+    tableId: string,
+  ): Promise<{
+    tableId: string;
+    projectId: string;
+    tableName: string;
+    columns: any[];
+  }> {
     const table = await this.tableModel.findById(tableId).exec();
 
     if (!table) {
@@ -95,7 +137,7 @@ export class TablesService {
       tableId: table._id.toString(),
       projectId: table.projectId.toString(),
       tableName: table.tableName,
-      columns: columns.map(col => ({
+      columns: columns.map((col) => ({
         name: col.name,
         type: col.type,
         required: col.required,
@@ -104,7 +146,11 @@ export class TablesService {
     };
   }
 
-  async updateTable(userId: string, tableId: string, updateTableDto: UpdateTableDto): Promise<{ tableId: string }> {
+  async updateTable(
+    userId: string,
+    tableId: string,
+    updateTableDto: UpdateTableDto,
+  ): Promise<{ tableId: string }> {
     const { tableName } = updateTableDto;
 
     const table = await this.tableModel.findById(tableId).exec();
@@ -119,7 +165,9 @@ export class TablesService {
       _id: { $ne: tableId },
     });
     if (duplicate) {
-      throw new BadRequestException(`Table '${tableName}' already exists in this project for this user`);
+      throw new BadRequestException(
+        `Table '${tableName}' already exists in this project for this user`,
+      );
     }
 
     // Ensure db is defined
@@ -130,7 +178,9 @@ export class TablesService {
     // Rename the collection in MongoDB
     const oldCollectionName = `${userId}_${String(table.projectId)}_${table.tableName}`;
     const newCollectionName = `${userId}_${String(table.projectId)}_${tableName}`;
-    await this.connection.db.collection(oldCollectionName).rename(newCollectionName);
+    await this.connection.db
+      .collection(oldCollectionName)
+      .rename(newCollectionName);
 
     // Update table document with new tableName
     table.tableName = tableName;

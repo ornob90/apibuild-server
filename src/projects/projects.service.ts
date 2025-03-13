@@ -1,19 +1,23 @@
+/* eslint-disable no-empty */
 /* eslint-disable prettier/prettier */
 import {
   Injectable,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import { Project, ProjectDocument } from '../schemas/project.schema';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { Table, TableDocument } from 'src/schemas/table.schema';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    @InjectModel(Table.name) private tableModel: Model<TableDocument>,
+    @InjectConnection() private connection: Connection,
   ) {}
 
   async createProject(
@@ -27,6 +31,7 @@ export class ProjectsService {
       userId,
       projectName,
     });
+
     if (existingProject) {
       throw new BadRequestException(
         `Project '${projectName}' already exists for this user`,
@@ -44,8 +49,9 @@ export class ProjectsService {
     userId: string,
     page: number = 1,
     limit: number = 10,
+    all?: 'true' | 'false',
   ): Promise<{
-    projects: { projectId: string; projectName: string }[];
+    projects: { _id: string; projectName: string }[];
     total: number;
     page: number;
     limit: number;
@@ -56,6 +62,22 @@ export class ProjectsService {
 
     const skip = (pageNumber - 1) * itemsPerPage;
 
+    if (all && all === 'true') {
+      const projects = await this.projectModel.find({ userId });
+      const formattedProjects = projects.map((project) => ({
+        _id: project._id,
+        projectName: project.projectName,
+      }));
+
+      return {
+        projects: formattedProjects,
+        total: projects?.length,
+        page: 0,
+        limit: 0,
+        totalPages: 0,
+      };
+    }
+
     // Fetch paginated projects
     const projects = await this.projectModel
       .find({ userId })
@@ -64,11 +86,13 @@ export class ProjectsService {
       .exec();
 
     // Get total count of projects for this user
-    const total = await this.projectModel.estimatedDocumentCount({ userId }).exec();
+    const total = await this.projectModel
+      .estimatedDocumentCount({ userId })
+      .exec();
 
     // Map projects to desired format
     const formattedProjects = projects.map((project) => ({
-      projectId: project._id.toString(),
+      _id: project._id.toString(),
       projectName: project.projectName,
     }));
 
@@ -131,11 +155,28 @@ export class ProjectsService {
   }
 
   async deleteProject(userId: string, projectId: string): Promise<void> {
-    const result = await this.projectModel
+    if (!this.connection.db) {
+      throw new Error('Database connection not established');
+    }
+
+    const projectResult = await this.projectModel
       .deleteOne({ _id: projectId, userId })
       .exec();
-    if (result.deletedCount === 0) {
-      throw new NotFoundException('Project not found or not owned by user');
+    if (projectResult.deletedCount === 0) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const tables = await this.tableModel.find({ userId, projectId }).exec();
+
+    if (tables.length > 0) {
+      await this.tableModel.deleteMany({ userId, projectId }).exec();
+
+      for (const table of tables) {
+        const collectionName = `${userId}_${projectId}_${table.tableName}`;
+        try {
+          await this.connection.db.dropCollection(collectionName);
+        } catch {}
+      }
     }
   }
 }
