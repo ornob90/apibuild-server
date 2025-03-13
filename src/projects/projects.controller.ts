@@ -8,6 +8,7 @@ import {
   Body,
   Param,
   Req,
+  Query,
   // UseGuards,
 } from '@nestjs/common';
 // import { AuthGuard } from '@nestjs/passport';
@@ -31,9 +32,17 @@ export class ProjectsController {
   }
 
   @Get()
-  async getUserProjects(@Req() req: AuthenticateRequest) {
+  async getUserProjects(
+    @Req() req: AuthenticateRequest,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
     const userId = req.user.id;
-    return this.projectsService.getUserProjects(userId);
+    return this.projectsService.getUserProjects(
+      userId,
+      parseInt(page),
+      parseInt(limit),
+    );
   }
 
   @Get(':projectId')
