@@ -1,5 +1,5 @@
-/* eslint-disable no-empty */
 /* eslint-disable prettier/prettier */
+/* eslint-disable no-empty */
 import {
   Injectable,
   BadRequestException,
@@ -11,12 +11,14 @@ import { Project, ProjectDocument } from '../schemas/project.schema';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Table, TableDocument } from 'src/schemas/table.schema';
+import { Column, ColumnDocument } from 'src/schemas/column.schema';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     @InjectModel(Table.name) private tableModel: Model<TableDocument>,
+    @InjectModel(Column.name) private columnModel: Model<ColumnDocument>,
     @InjectConnection() private connection: Connection,
   ) {}
 
@@ -167,8 +169,13 @@ export class ProjectsService {
     }
 
     const tables = await this.tableModel.find({ userId, projectId }).exec();
+    console.log({tables, projectId, userId})
 
     if (tables.length > 0) {
+      const tableIds = tables.map((table) => table._id);
+      console.log(tableIds)
+
+      await this.columnModel.deleteMany({ tableId: { $in: tableIds } }).exec();
       await this.tableModel.deleteMany({ userId, projectId }).exec();
 
       for (const table of tables) {

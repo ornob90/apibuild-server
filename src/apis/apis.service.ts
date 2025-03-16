@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import {
   Injectable,
   BadRequestException,

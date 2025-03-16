@@ -25,6 +25,8 @@ import { nodemailerConfig } from './config/nodemailer.config';
 import { VerifyMiddleware } from './middlewares/verify.middleware';
 import { ProjectsController } from './projects/projects.controller';
 import { TablesController } from './tables/tables.controller';
+import { UsersModule } from './users/users.module';
+import { UsersController } from './users/users.controller';
 dotenv.config();
 
 @Module({
@@ -40,6 +42,7 @@ dotenv.config();
     ApiBuildModule,
     AuthModule,
     AnalyticsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -51,7 +54,8 @@ export class AppModule implements NestModule {
       .forRoutes(
         { path: '/auth/session', method: RequestMethod.GET },
         ProjectsController,
-        TablesController
+        TablesController,
+        UsersController
       );
   }
 }

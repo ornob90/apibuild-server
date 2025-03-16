@@ -1,5 +1,16 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Get, Put, Delete, Body, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Req,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { TablesService } from './tables.service';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
@@ -15,19 +26,38 @@ export class TablesController {
   constructor(private readonly tablesService: TablesService) {}
 
   @Post()
-  async createTable(@Req() req: AuthenticatedRequest, @Body() createTableDto: CreateTableDto) {
+  async createTable(
+    @Req() req: AuthenticatedRequest,
+    @Body() createTableDto: CreateTableDto,
+  ) {
     const userId = req.user.id;
     return this.tablesService.createTable(userId, createTableDto);
   }
 
   @Get('project/:projectId')
-  async getTablesByProject(@Req() req: AuthenticatedRequest, @Param('projectId') projectId: string) {
+  async getTablesByProject(
+    @Req() req: AuthenticatedRequest,
+    @Param('projectId') projectId: string,
+  ) {
     const userId = req.user.id;
     return this.tablesService.getTablesByProject(userId, projectId);
   }
 
+  @Get('user')
+  async getTablesByUser(
+    @Req() req: AuthenticatedRequest,
+    @Query('page', ParseIntPipe) page: number = 1,
+    @Query('limit', ParseIntPipe) limit: number = 10,
+  ) {
+    const userId = req.user.id;
+    return this.tablesService.getTablesByUser(userId, page, limit);
+  }
+
   @Get(':tableId')
-  async getTableById(@Req() req: AuthenticatedRequest, @Param('tableId') tableId: string) {
+  async getTableById(
+    @Req() req: AuthenticatedRequest,
+    @Param('tableId') tableId: string,
+  ) {
     const userId = req.user.id;
     return this.tablesService.getTableById(userId, tableId);
   }
@@ -43,7 +73,10 @@ export class TablesController {
   }
 
   @Delete(':tableId')
-  async deleteTable(@Req() req: AuthenticatedRequest, @Param('tableId') tableId: string) {
+  async deleteTable(
+    @Req() req: AuthenticatedRequest,
+    @Param('tableId') tableId: string,
+  ) {
     const userId = req.user.id;
     await this.tablesService.deleteTable(userId, tableId);
     return { message: 'Table deleted successfully' };

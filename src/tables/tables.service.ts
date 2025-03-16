@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-base-to-string */
 import {
   Injectable,
@@ -100,8 +101,8 @@ export class TablesService {
       }
 
       return { tableId: table._id.toString() };
-    } catch (error) {
-      console.log(error.message);
+    } catch (error: any) {
+      // console.log(error.message);
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -115,6 +116,37 @@ export class TablesService {
       tableId: table._id.toString(),
       tableName: table.tableName,
     }));
+  }
+
+  async getTablesByUser(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    tables: { _id: string; projectId: string; tableName: string }[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPage: number
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [tables, total] = await Promise.all([
+      this.tableModel.find({ userId }).skip(skip).limit(limit).exec(),
+      this.tableModel.countDocuments({ userId }).exec(),
+    ]);
+
+    return {
+      tables: tables.map((table) => ({
+        _id: table._id.toString(),
+        projectId: table.projectId.toString(),
+        tableName: table.tableName,
+      })),
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
+    };
   }
 
   async getTableById(
@@ -190,6 +222,10 @@ export class TablesService {
   }
 
   async deleteTable(userId: string, tableId: string): Promise<void> {
+    if (!this.connection.db) {
+      throw new Error('Database connection not established');
+    }
+
     const table = await this.tableModel.findById(tableId).exec();
 
     if (!table) {
@@ -202,9 +238,6 @@ export class TablesService {
     // Drop the MongoDB collection
     const collectionName = `${userId}_${String(table.projectId)}_${String(table.tableName)}`;
 
-    if (!this.connection.db) {
-      throw new Error('Database connection not established');
-    }
     await this.connection.db.collection(collectionName).drop();
 
     // Delete the table document
