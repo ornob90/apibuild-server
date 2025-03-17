@@ -1,8 +1,16 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Get, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+
+  Param,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { TokenService } from './token.service';
-import { CreateTokenDto } from './dto/create-token.dto';
 import { Request } from 'express';
 
 interface AuthenticatedRequest extends Request {
@@ -15,9 +23,9 @@ export class TokensController {
   constructor(private readonly tokenService: TokenService) {}
 
   @Post()
-  async createToken(@Req() req: AuthenticatedRequest, @Body() createTokenDto: CreateTokenDto) {
+  async createToken(@Req() req: AuthenticatedRequest) {
     const userId = req.user.id;
-    return this.tokenService.createToken(userId, createTokenDto);
+    return this.tokenService.createToken(userId);
   }
 
   @Get()
@@ -27,13 +35,19 @@ export class TokensController {
   }
 
   @Get(':tokenId')
-  async getTokenById(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+  async getTokenById(
+    @Req() req: AuthenticatedRequest,
+    @Param('tokenId') tokenId: string,
+  ) {
     const userId = req.user.id;
     return this.tokenService.getTokenById(userId, tokenId);
   }
 
   @Delete(':tokenId')
-  async revokeToken(@Req() req: AuthenticatedRequest, @Param('tokenId') tokenId: string) {
+  async revokeToken(
+    @Req() req: AuthenticatedRequest,
+    @Param('tokenId') tokenId: string,
+  ) {
     const userId = req.user.id;
     await this.tokenService.revokeToken(userId, tokenId);
     return { message: 'Token revoked successfully' };

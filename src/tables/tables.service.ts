@@ -1,4 +1,6 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-base-to-string */
 import {
@@ -127,7 +129,7 @@ export class TablesService {
     total: number;
     page: number;
     limit: number;
-    totalPage: number
+    totalPage: number;
   }> {
     const skip = (page - 1) * limit;
 
@@ -147,6 +149,34 @@ export class TablesService {
       limit,
       totalPage: Math.ceil(total / limit),
     };
+  }
+
+  async getTablesWithColumns(
+    userId: string,
+  ): Promise<{ tableId: string; tableName: string; columnNames: string[] }[]> {
+    const tables = await this.tableModel.find({ userId }).exec();
+    const tableIds = tables.map((table) => table._id);
+
+    const columns = await this.columnModel
+      .find({ tableId: { $in: tableIds } })
+      .exec();
+
+    const columnMap = columns.reduce((acc, col) => {
+      const tableIdStr = col.tableId.toString();
+
+      if (!acc[tableIdStr]) {
+        acc[tableIdStr] = [];
+      }
+      
+      acc[tableIdStr].push(col.name);
+      return acc;
+    }, {});
+
+    return tables.map((table) => ({
+      tableId: table._id.toString(),
+      tableName: table.tableName,
+      columnNames: columnMap[table?._id.toString()] || [],
+    }));
   }
 
   async getTableById(

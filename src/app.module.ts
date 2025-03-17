@@ -27,6 +27,7 @@ import { ProjectsController } from './projects/projects.controller';
 import { TablesController } from './tables/tables.controller';
 import { UsersModule } from './users/users.module';
 import { UsersController } from './users/users.controller';
+import { ApisController } from './apis/apis.controller';
 dotenv.config();
 
 @Module({
@@ -55,7 +56,8 @@ export class AppModule implements NestModule {
         { path: '/auth/session', method: RequestMethod.GET },
         ProjectsController,
         TablesController,
-        UsersController
+        UsersController,
+        ApisController
       );
   }
 }

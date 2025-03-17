@@ -1,4 +1,7 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-base-to-string */
 
 import { Injectable } from '@nestjs/common';
@@ -7,6 +10,7 @@ import { Model } from 'mongoose';
 import { Project, ProjectDocument } from 'src/schemas/project.schema';
 import { Table, TableDocument } from 'src/schemas/table.schema';
 import { Api, ApiDocument } from 'src/schemas/api.schema';
+import { Column, ColumnDocument } from 'src/schemas/column.schema';
 
 @Injectable()
 export class UsersService {
@@ -14,13 +18,14 @@ export class UsersService {
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
     @InjectModel(Table.name) private tableModel: Model<TableDocument>,
     @InjectModel(Api.name) private apiModel: Model<ApiDocument>,
+    @InjectModel(Column.name) private columnModel: Model<ColumnDocument>,
   ) {}
 
   async getUserData(userId: string): Promise<{
-    projects: { projectId: string; name: string }[];
-    tables: { tableId: string; projectId: string; tableName: string }[];
+    projects: { _id: string; name: string }[];
+    tables: { _id: string; projectId: string; tableName: string }[];
     apis: {
-      apiId: string;
+      _id: string;
       method: string;
       path: string;
       tableId: string;
@@ -37,18 +42,35 @@ export class UsersService {
       this.apiModel.find({ userId }).exec(),
     ]);
 
+    const tableIds = tables.map((table) => table._id);
+    const columns = await this.columnModel
+      .find({ tableId: { $in: tableIds } })
+      .exec();
+
+    const columnMap = columns.reduce((acc, col) => {
+      const tableIdStr = col.tableId.toString();
+
+      if (!acc[tableIdStr]) {
+        acc[tableIdStr] = [];
+      }
+
+      acc[tableIdStr].push(col.name);
+      return acc;
+    }, {});
+
     return {
       projects: projects.map((project) => ({
-        projectId: project._id.toString(),
+        _id: project._id.toString(),
         name: project.projectName,
       })),
       tables: tables.map((table) => ({
-        tableId: table._id.toString(),
+        _id: table._id.toString(),
         projectId: table?.projectId.toString(),
         tableName: table.tableName,
+        columnNames: columnMap[table?._id.toString()] || [],
       })),
       apis: apis.map((api) => ({
-        apiId: api._id.toString(),
+        _id: api._id.toString(),
         method: api.method,
         path: api.path,
         tableId: api.tableId.toString(),

@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-base-to-string */
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Token, TokenDocument } from 'src/schemas/token.schema';
-import { CreateTokenDto } from './dto/create-token.dto';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 
@@ -16,10 +15,7 @@ export class TokenService {
 
   async createToken(
     userId: string,
-    createTokenDto: CreateTokenDto,
   ): Promise<{ tokenId: string; token: string }> {
-    const { name } = createTokenDto;
-
     // Generate a unique token
     const token = `api_${crypto.randomBytes(32).toString('hex')}`; // e.g., api_1a2b3c...
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -29,7 +25,6 @@ export class TokenService {
     const tokenDoc = new this.tokenModel({
       userId,
       tokenHash,
-      name,
       active: true,
     });
 
@@ -40,13 +35,10 @@ export class TokenService {
 
   async getUserTokens(
     userId: string,
-  ): Promise<
-    { tokenId: string; name: string; createdAt: Date; active: boolean }[]
-  > {
+  ): Promise<{ tokenId: string; createdAt: Date; active: boolean }[]> {
     const tokens = await this.tokenModel.find({ userId, active: true }).exec();
     return tokens.map((token) => ({
       tokenId: token._id.toString(),
-      name: token.name,
       createdAt: token.createdAt,
       active: token.active,
     }));
@@ -57,7 +49,6 @@ export class TokenService {
     tokenId: string,
   ): Promise<{
     tokenId: string;
-    name: string;
     createdAt: Date;
     active: boolean;
   }> {
@@ -69,7 +60,6 @@ export class TokenService {
     }
     return {
       tokenId: token._id.toString(),
-      name: token.name,
       createdAt: token.createdAt,
       active: token.active,
     };

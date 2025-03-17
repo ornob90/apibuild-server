@@ -53,6 +53,12 @@ export class TablesController {
     return this.tablesService.getTablesByUser(userId, page, limit);
   }
 
+  @Get('columns')
+  async getTablesWithColumns(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    return this.tablesService.getTablesWithColumns(userId);
+  }
+
   @Get(':tableId')
   async getTableById(
     @Req() req: AuthenticatedRequest,

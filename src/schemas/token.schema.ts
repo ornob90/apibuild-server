@@ -13,8 +13,8 @@ export class Token extends Document {
   @Prop({ required: true })
   tokenHash: string;
 
-  @Prop({ required: true })
-  name: string;
+  // @Prop({ required: true })
+  // name: string;
 
   @Prop({ default: true })
   active: boolean;

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-base-to-string */
 import {
@@ -11,6 +14,7 @@ import { Api, ApiDocument } from 'src/schemas/api.schema';
 import { Table, TableDocument } from 'src/schemas/table.schema';
 import { CreateApiDto } from './dto/create-api.dto';
 import { UpdateApiDto } from './dto/update-api.dto';
+import { validActions, validAggregtes, validParams } from 'src/data/apis.data';
 
 @Injectable()
 export class ApisService {
@@ -23,8 +27,16 @@ export class ApisService {
     userId: string,
     createApiDto: CreateApiDto,
   ): Promise<{ apiId: string }> {
-    const { method, path, tableId, action, params, sortOrder, limit, aggregateType } =
-      createApiDto;
+    const {
+      method,
+      path,
+      tableId,
+      action,
+      params,
+      sortOrder,
+      limit,
+      aggregateType,
+    } = createApiDto;
 
     const table = await this.tableModel.findById(tableId).exec();
     if (!table) {
@@ -40,14 +52,17 @@ export class ApisService {
       );
     }
 
-    if (['find', 'update', 'delete'].includes(action)) {
+    if (validActions.includes(action)) {
       if (!params || params.length === 0) {
         throw new BadRequestException(
-          `'params' array is required and must not be empty for action '${action}'`,
+          `'Dynamic Params Is Required for Action: '${action}'`,
         );
       }
-      params.forEach(param => {
-        if (['findOne', 'findAll', 'aggregate'].includes(param.action) && !path.includes(`:${param.name}`)) {
+      params.forEach((param) => {
+        if (
+          validParams.includes(param.action) &&
+          !path.includes(`:${param.name}`)
+        ) {
           throw new BadRequestException(
             `Path must include the parameter ':${param.name}' for param action '${param.action}'`,
           );
@@ -55,9 +70,11 @@ export class ApisService {
       });
     }
 
-    if (action === 'find' && params.some(p => p.action === 'aggregate')) {
-      if (aggregateType && !['count', 'sum', 'avg'].includes(aggregateType)) {
-        throw new BadRequestException(`Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`);
+    if (action === 'find' && params.some((p) => p.action === 'aggregate')) {
+      if (aggregateType && !validAggregtes.includes(aggregateType)) {
+        throw new BadRequestException(
+          `Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`,
+        );
       }
     }
 
@@ -77,46 +94,71 @@ export class ApisService {
     return { apiId: api._id.toString() };
   }
 
-  async getUserApis(userId: string): Promise<
-    {
-      apiId: string;
+  async getUserApis(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<{
+    apis: {
+      _id: string;
       method: string;
       path: string;
-      tableId: string;
+      table: any;
       action: string;
       params: { name: string; action: string }[];
       sortOrder: string;
       limit: number;
       aggregateType: string;
-    }[]
-  > {
-    const apis = await this.apiModel.find({ userId }).exec();
-    return apis.map((api) => ({
-      apiId: api._id.toString(),
-      method: api.method,
-      path: api.path,
-      tableId: api.tableId.toString(),
-      action: api.action,
-      params: api.params,
-      sortOrder: api.sortOrder,
-      limit: api.limit,
-      aggregateType: api.aggregateType,
-    }));
+    }[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPage: number;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [apis, total] = await Promise.all([
+      this.apiModel
+        .find({ userId })
+        .skip(skip)
+        .limit(limit)
+        .populate('tableId')
+        .exec(),
+      this.apiModel.countDocuments({ userId }).exec(),
+    ]);
+
+    return {
+      apis: apis.map((api) => ({
+        _id: api._id.toString(),
+        method: api.method,
+        path: api.path,
+        table: api.tableId as any,
+        action: api.action,
+        params: api.params,
+        sortOrder: api.sortOrder,
+        limit: api.limit,
+        aggregateType: api.aggregateType,
+      })),
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
+    };
   }
 
   async getApiById(
     userId: string,
     apiId: string,
   ): Promise<{
-      apiId: string;
-      method: string;
-      path: string;
-      tableId: string;
-      action: string;
-      params: { name: string; action: string }[];
-      sortOrder: string;
-      limit: number;
-      aggregateType: string;
+    apiId: string;
+    method: string;
+    path: string;
+    tableId: string;
+    action: string;
+    params: { name: string; action: string }[];
+    sortOrder: string;
+    limit: number;
+    aggregateType: string;
   }> {
     const api = await this.apiModel.findOne({ _id: apiId, userId }).exec();
     if (!api) {
@@ -140,7 +182,8 @@ export class ApisService {
     apiId: string,
     updateApiDto: UpdateApiDto,
   ): Promise<{ apiId: string }> {
-    const { method, path, action, params, sortOrder, limit, aggregateType } = updateApiDto;
+    const { method, path, action, params, sortOrder, limit, aggregateType } =
+      updateApiDto;
 
     const api = await this.apiModel.findOne({ _id: apiId, userId }).exec();
     if (!api) {
@@ -167,8 +210,11 @@ export class ApisService {
           `'params' array is required and must not be empty for action '${action}'`,
         );
       }
-      params.forEach(param => {
-        if (['findOne', 'findAll', 'aggregate'].includes(param.action) && !(path || api.path).includes(`:${param.name}`)) {
+      params.forEach((param) => {
+        if (
+          ['findOne', 'findAll', 'aggregate'].includes(param.action) &&
+          !(path || api.path).includes(`:${param.name}`)
+        ) {
           throw new BadRequestException(
             `Path must include the parameter ':${param.name}' for param action '${param.action}'`,
           );
@@ -176,9 +222,14 @@ export class ApisService {
       });
     }
 
-    if ((action === 'find' || api.action === 'find') && (params || api.params).some(p => p.action === 'aggregate')) {
+    if (
+      (action === 'find' || api.action === 'find') &&
+      (params || api.params).some((p) => p.action === 'aggregate')
+    ) {
       if (aggregateType && !['count', 'sum', 'avg'].includes(aggregateType)) {
-        throw new BadRequestException(`Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`);
+        throw new BadRequestException(
+          `Invalid aggregateType: '${aggregateType}'. Must be 'count', 'sum', or 'avg'`,
+        );
       }
     }
 
