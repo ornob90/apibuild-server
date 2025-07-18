@@ -7,8 +7,10 @@ import { SuccessResponseInterceptor } from './interceptors/success-response.inte
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors({
-    origin: '*',
+   app.enableCors({
+    origin: "https://api-build-cms-client.vercel.app",
+    credentials: true,
+    
   });
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());
