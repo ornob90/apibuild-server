@@ -8,6 +8,10 @@ import { Table, TableSchema } from 'src/schemas/table.schema';
 import { TokenModule } from 'src/token/token.module';
 import { Analytics, AnalyticsSchema } from 'src/schemas/analytics.schema';
 import { AnalyticsService } from 'src/analytics/analytics.service';
+import {
+  DailyAnalytics,
+  DailyAnalyticsSchema,
+} from 'src/schemas/daily-analytics.schema';
 
 @Module({
   imports: [
@@ -15,9 +19,9 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
       { name: Api.name, schema: ApiSchema },
       { name: Table.name, schema: TableSchema },
       { name: Analytics.name, schema: AnalyticsSchema },
+      { name: DailyAnalytics.name, schema: DailyAnalyticsSchema },
     ]),
     TokenModule,
-    // AnalyticsModule
   ],
   controllers: [ApiBuildController],
   providers: [ApiBuildService, AnalyticsService],

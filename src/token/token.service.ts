@@ -13,9 +13,7 @@ export class TokenService {
     @InjectModel(Token.name) private tokenModel: Model<TokenDocument>,
   ) {}
 
-  async createToken(
-    userId: string,
-  ): Promise<{ tokenId: string; token: string }> {
+  async createToken(userId: string): Promise<[]> {
     // Generate a unique token
     const token = `api_${crypto.randomBytes(32).toString('hex')}`; // e.g., api_1a2b3c...
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -25,21 +23,22 @@ export class TokenService {
     const tokenDoc = new this.tokenModel({
       userId,
       tokenHash,
+      token,
       active: true,
     });
 
     await tokenDoc.save();
 
-    return { tokenId: tokenDoc._id.toString(), token }; // Return plaintext token once
+    return [];
   }
 
   async getUserTokens(
     userId: string,
-  ): Promise<{ tokenId: string; createdAt: Date; active: boolean }[]> {
-    const tokens = await this.tokenModel.find({ userId, active: true }).exec();
+  ): Promise<{ _id: string; token: string; active: boolean }[]> {
+    const tokens = await this.tokenModel.find({ userId }).exec();
     return tokens.map((token) => ({
-      tokenId: token._id.toString(),
-      createdAt: token.createdAt,
+      _id: token._id.toString(),
+      token: token.token,
       active: token.active,
     }));
   }
@@ -48,8 +47,9 @@ export class TokenService {
     userId: string,
     tokenId: string,
   ): Promise<{
-    tokenId: string;
+    _id: string;
     createdAt: Date;
+    token: string;
     active: boolean;
   }> {
     const token = await this.tokenModel
@@ -59,10 +59,30 @@ export class TokenService {
       throw new NotFoundException('Token not found');
     }
     return {
-      tokenId: token._id.toString(),
+      _id: token._id.toString(),
       createdAt: token.createdAt,
+      token: token.tokenHash,
       active: token.active,
     };
+  }
+
+  async updateTokenActivation(
+    userId: string,
+    tokenId: string,
+    isActive: boolean,
+  ): Promise<{ tokenId: string; isActive: boolean }> {
+    
+    const token = await this.tokenModel
+      .findOne({ _id: tokenId, userId })
+      .exec();
+    if (!token) {
+      throw new NotFoundException('Token not found');
+    }
+
+    token.active = isActive;
+    await token.save();
+
+    return { tokenId: token._id.toString(), isActive: token.active };
   }
 
   async revokeToken(userId: string, tokenId: string): Promise<void> {

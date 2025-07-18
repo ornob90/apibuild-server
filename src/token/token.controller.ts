@@ -4,12 +4,11 @@ import {
   Post,
   Get,
   Delete,
-
   Param,
   Req,
-  UseGuards,
+  Patch,
+  Body,
 } from '@nestjs/common';
-import { AuthGuard } from 'src/guards/auth.guard';
 import { TokenService } from './token.service';
 import { Request } from 'express';
 
@@ -18,7 +17,6 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('tokens')
-@UseGuards(AuthGuard)
 export class TokensController {
   constructor(private readonly tokenService: TokenService) {}
 
@@ -41,6 +39,16 @@ export class TokensController {
   ) {
     const userId = req.user.id;
     return this.tokenService.getTokenById(userId, tokenId);
+  }
+
+  @Patch(':tokenId/activation')
+  async updateTokenActivation(
+    @Req() req: AuthenticatedRequest,
+    @Param('tokenId') tokenId: string,
+    @Body('isActive') isActive: boolean,
+  ) {
+    const userId = req.user.id;
+    return this.tokenService.updateTokenActivation(userId, tokenId, isActive);
   }
 
   @Delete(':tokenId')

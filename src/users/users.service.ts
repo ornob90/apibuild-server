@@ -22,7 +22,7 @@ export class UsersService {
   ) {}
 
   async getUserData(userId: string): Promise<{
-    projects: { _id: string; name: string }[];
+    projects: { _id: string; projectName: string }[];
     tables: { _id: string; projectId: string; tableName: string }[];
     apis: {
       _id: string;
@@ -61,7 +61,7 @@ export class UsersService {
     return {
       projects: projects.map((project) => ({
         _id: project._id.toString(),
-        name: project.projectName,
+        projectName: project.projectName,
       })),
       tables: tables.map((table) => ({
         _id: table._id.toString(),

@@ -1,7 +1,7 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-base-to-string */
 import {
   Injectable,
@@ -14,7 +14,7 @@ import { Api, ApiDocument } from 'src/schemas/api.schema';
 import { Table, TableDocument } from 'src/schemas/table.schema';
 import { CreateApiDto } from './dto/create-api.dto';
 import { UpdateApiDto } from './dto/update-api.dto';
-import { validActions, validAggregtes, validParams } from 'src/data/apis.data';
+import {  validAggregtes, validParams } from 'src/data/apis.data';
 
 @Injectable()
 export class ApisService {
@@ -52,7 +52,7 @@ export class ApisService {
       );
     }
 
-    if (validActions.includes(action)) {
+    if (['find', 'update', 'delete'].includes(action)) {
       if (!params || params.length === 0) {
         throw new BadRequestException(
           `'Dynamic Params Is Required for Action: '${action}'`,

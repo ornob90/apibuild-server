@@ -28,6 +28,9 @@ import { TablesController } from './tables/tables.controller';
 import { UsersModule } from './users/users.module';
 import { UsersController } from './users/users.controller';
 import { ApisController } from './apis/apis.controller';
+import { TokensController } from './token/token.controller';
+import { ApiBuildController } from './api-build/api-build.controller';
+import { DailyAnalyticsModule } from './daily-analytics/daily-analytics.module';
 dotenv.config();
 
 @Module({
@@ -44,6 +47,7 @@ dotenv.config();
     AuthModule,
     AnalyticsModule,
     UsersModule,
+    DailyAnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -57,7 +61,9 @@ export class AppModule implements NestModule {
         ProjectsController,
         TablesController,
         UsersController,
-        ApisController
+        ApisController,
+        TokensController,
+        ApiBuildController
       );
   }
 }

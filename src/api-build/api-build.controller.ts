@@ -8,19 +8,15 @@ import {
   All,
   Req,
   Res,
-  UseGuards,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTokenGuard } from 'src/guards/api-token.guard';
+
 import { ApiBuildService } from './api-build.service';
-import {  Response } from 'express';
+import { Response } from 'express';
 import { AuthenticateRequest } from 'src/types/auth.types';
 
-
-
 @Controller('api-build')
-@UseGuards(ApiTokenGuard)
 export class ApiBuildController {
   constructor(private readonly apiBuildService: ApiBuildService) {}
 
